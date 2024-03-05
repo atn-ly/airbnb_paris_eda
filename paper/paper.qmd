@@ -17,6 +17,7 @@ number-sections: true
 library(tidyverse)
 library(knitr)
 library(arrow)
+library(naniar)
 
 # Read in parquet
 airbnb_data_selected <- read_parquet(here::here("data/analysis_data/2024-12-12-paris-airbnblistings-select_variables.parquet"))
@@ -132,5 +133,148 @@ airbnb_data_selected |>
   )
 ```
 
-# Distribution of review scores for Paris Airbnb rentails in December 2023
+## Distribution of review scores for Paris Airbnb rentals in December 2023
 
+We will remove prices that are more than $999 and remove anyone with a NA for whether they are a superhost.
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+airbnb_data_less_1000 <-
+  airbnb_data_selected |>
+  filter(price < 1000)
+
+airbnb_data_less_1000 |>
+  filter(is.na(host_is_superhost))
+
+airbnb_data_no_superhost_nas <-
+  airbnb_data_less_1000 |>
+  filter(!is.na(host_is_superhost)) |>
+  mutate(
+    host_is_superhost_binary =
+      as.numeric(host_is_superhost)
+  )
+```
+
+Now we can look at the distribution of reviews:
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+airbnb_data_no_superhost_nas |>
+  ggplot(aes(x = review_scores_rating)) +
+  geom_bar() +
+  theme_classic() +
+  labs(
+    x = "Review scores rating",
+    y = "Number of properties"
+  )
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+airbnb_data_no_superhost_nas |>
+  filter(!is.na(review_scores_rating)) |>
+  ggplot(aes(x = review_scores_rating)) +
+  geom_histogram(binwidth = 1) +
+  theme_classic() +
+  labs(
+    x = "Average review score",
+    y = "Number of properties"
+  )
+```
+
+## Missing values in host response time
+
+We see that the variable host_response_time has NAs:
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+airbnb_data_has_reviews <-
+  airbnb_data_no_superhost_nas |>
+  filter(!is.na(review_scores_rating))
+```
+
+```{r}
+#| echo: false
+
+airbnb_data_has_reviews |>
+  count(host_response_time) |>
+  kable()
+```
+
+When we include NAs in the graph:
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+airbnb_data_has_reviews |>
+  ggplot(aes(
+    x = host_response_time,
+    y = review_scores_accuracy
+  )) +
+  geom_miss_point() +
+  labs(
+    x = "Host response time",
+    y = "Review score accuracy",
+    color = "Is missing?"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+We remove NAs in response time.
+
+```{r}
+airbnb_data_selected <-
+  airbnb_data_has_reviews |>
+  filter(!is.na(host_response_time))
+```
+
+## Distribution of the number of properties a host has on Airbnb, for Paris Airbnb rentals in December 2023
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+airbnb_data_selected |>
+  ggplot(aes(x = host_total_listings_count)) +
+  geom_histogram() +
+  scale_x_log10() +
+  labs(
+    x = "Total number of listings, by host",
+    y = "Number of hosts"
+  )
+```
+
+```{r}
+airbnb_data_selected |>
+  filter(host_total_listings_count >= 500) |>
+  head()
+```
+
+We focus on only those with one property for simplicity.
+
+```{r}
+airbnb_data_selected <-
+  airbnb_data_selected |>
+  add_count(host_id) |>
+  filter(n == 1) |>
+  select(-n)
+```
+
+# Relationships between variables
+
+## 
