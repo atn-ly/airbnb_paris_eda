@@ -6,6 +6,8 @@ date: today
 date-format: long
 format: pdf
 number-sections: true
+toc: true
+bibliography: references.bib
 ---
 
 ```{r}
@@ -26,7 +28,7 @@ airbnb_data_selected <- read_parquet(here::here("data/analysis_data/2024-12-12-p
 
 # Introduction
 
-In this case study we look at Airbnb listings in Paris, France, as of 12 December 2023.
+In this case study we look at Airbnb listings in Paris, France, as of 12 December 2023. We use the same data from the textbook [@tellingstories] in R [@citeR] and the packages `tidyverse` [@tidyverse], `knitr` [@knitr], `arrow` [@arrow], `naniar` [@naniar], and `modelsummary` [@modelsummary]. 
 
 # Distribution and properties of individual variables
 
@@ -328,3 +330,7 @@ logistic_reg_superhost_response_review <-
 modelsummary(logistic_reg_superhost_response_review)
 ```
 
+\newpage
+
+
+# References
