@@ -18,6 +18,7 @@ library(tidyverse)
 library(knitr)
 library(arrow)
 library(naniar)
+library(modelsummary)
 
 # Read in parquet
 airbnb_data_selected <- read_parquet(here::here("data/analysis_data/2024-12-12-paris-airbnblistings-select_variables.parquet"))
@@ -237,6 +238,10 @@ airbnb_data_has_reviews |>
 We remove NAs in response time.
 
 ```{r}
+#| include: false
+#| warning: false
+#| message: false
+
 airbnb_data_selected <-
   airbnb_data_has_reviews |>
   filter(!is.na(host_response_time))
@@ -260,6 +265,10 @@ airbnb_data_selected |>
 ```
 
 ```{r}
+#| include: false
+#| warning: false
+#| message: false
+
 airbnb_data_selected |>
   filter(host_total_listings_count >= 500) |>
   head()
@@ -268,6 +277,10 @@ airbnb_data_selected |>
 We focus on only those with one property for simplicity.
 
 ```{r}
+#| include: false
+#| warning: false
+#| message: false
+
 airbnb_data_selected <-
   airbnb_data_selected |>
   add_count(host_id) |>
@@ -277,4 +290,41 @@ airbnb_data_selected <-
 
 # Relationships between variables
 
-## 
+## Relationship between price and review and whether a host is a superhost, for Paris Airbnb rentals in December 2023
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+airbnb_data_selected |>
+  filter(number_of_reviews > 1) |>
+  ggplot(aes(x = price, y = review_scores_rating, 
+             color = host_is_superhost)) +
+  geom_point(size = 1, alpha = 0.1) +
+  theme_classic() +
+  labs(
+    x = "Price per night",
+    y = "Average review score",
+    color = "Superhost"
+  ) +
+  scale_color_brewer(palette = "Set1")
+```
+
+## Model explaining whether a host is a superhost based on their response time
+
+```{r}
+#| echo: false
+
+logistic_reg_superhost_response_review <-
+  glm(
+    host_is_superhost ~
+      host_response_time +
+      review_scores_rating,
+    data = airbnb_data_selected,
+    family = binomial
+  )
+
+modelsummary(logistic_reg_superhost_response_review)
+```
+
